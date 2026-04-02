@@ -61,6 +61,7 @@ gym = [
 ]
 dev = [
     "pytest>=8.3.5",
+    "pytest-xdist>=3.5.0",
     "ruff>=0.9.1",
     "pre-commit>=4.0.0",
 ]
