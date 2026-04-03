@@ -415,6 +415,7 @@ class TestMultiTurn:
                 silence, tick_number=len(results_t1) + tick + 1
             )
             assert_audio_capping(result, connected_adapter)
+            assert_played_audio_length(result, connected_adapter)
 
         # Turn 2: send different audio, wait for response
         t2_audio = load_telephony_audio("help_me.ulaw")
