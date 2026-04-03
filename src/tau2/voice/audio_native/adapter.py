@@ -17,8 +17,6 @@ from loguru import logger
 from tau2.config import (
     DEFAULT_AUDIO_NATIVE_MODELS,
     DEFAULT_AUDIO_NATIVE_VOIP_PACKET_INTERVAL_MS,
-    DEFAULT_BUFFER_UNTIL_COMPLETE,
-    DEFAULT_FAST_FORWARD_MODE,
     DEFAULT_SEND_AUDIO_INSTANT,
     TELEPHONY_ULAW_SILENCE,
 )
@@ -334,8 +332,6 @@ def create_adapter(
     provider: str,
     tick_duration_ms: int,
     send_audio_instant: bool = DEFAULT_SEND_AUDIO_INSTANT,
-    buffer_until_complete: bool = DEFAULT_BUFFER_UNTIL_COMPLETE,
-    fast_forward_mode: bool = DEFAULT_FAST_FORWARD_MODE,
     model: Optional[str] = None,
     audio_format: Optional[AudioFormat] = None,
     cascaded_config: Any = None,
@@ -348,13 +344,9 @@ def create_adapter(
 
     Args:
         provider: Provider identifier (openai, gemini, xai, nova, qwen,
-            deepgram, livekit).
+            livekit).
         tick_duration_ms: Duration of each tick in milliseconds.
         send_audio_instant: If True, send audio in one call per tick.
-        buffer_until_complete: If True, wait for complete utterances before
-            releasing audio. Only supported by the OpenAI provider.
-        fast_forward_mode: If True, exit tick early when enough audio is
-            buffered. Only supported by the OpenAI provider.
         model: Model identifier. If None, uses the provider's default.
         audio_format: Audio format for external communication. Defaults to
             telephony (8kHz μ-law).
@@ -364,27 +356,8 @@ def create_adapter(
         Tuple of (adapter, resolved_model).
 
     Raises:
-        ValueError: If buffer_until_complete or fast_forward_mode is used
-            with a non-OpenAI provider, or if the provider is unknown.
+        ValueError: If the provider is unknown.
     """
-    # --- Validate OpenAI-only parameters ---
-    if buffer_until_complete and provider != "openai":
-        raise ValueError(
-            f"buffer_until_complete is only supported by the 'openai' provider, "
-            f"got provider='{provider}'."
-        )
-    if fast_forward_mode:
-        if provider != "openai":
-            raise ValueError(
-                f"fast_forward_mode is only supported by the 'openai' provider, "
-                f"got provider='{provider}'."
-            )
-        logger.warning(
-            "Fast-forward mode is enabled. The simulation will run as fast as "
-            "possible rather than in real-time. This may affect timing-sensitive "
-            "behaviors and produce results that differ from real-time execution."
-        )
-
     # --- Resolve model default ---
     if model is None:
         if provider == "livekit":
@@ -407,16 +380,14 @@ def create_adapter(
     adapter: DiscreteTimeAdapter
     if provider == "openai":
         from tau2.voice.audio_native.openai.discrete_time_adapter import (
-            DiscreteTimeAudioNativeAdapter,
+            DiscreteTimeOpenAIAdapter,
         )
 
-        adapter = DiscreteTimeAudioNativeAdapter(
+        adapter = DiscreteTimeOpenAIAdapter(
             tick_duration_ms=tick_duration_ms,
             send_audio_instant=send_audio_instant,
-            buffer_until_complete=buffer_until_complete,
             model=model,
             audio_format=audio_format,
-            fast_forward_mode=fast_forward_mode,
         )
     elif provider == "gemini":
         from tau2.voice.audio_native.gemini.discrete_time_adapter import (
@@ -456,16 +427,6 @@ def create_adapter(
             tick_duration_ms=tick_duration_ms,
             send_audio_instant=send_audio_instant,
             model=model,
-        )
-    elif provider == "deepgram":
-        from tau2.voice.audio_native.deepgram.discrete_time_adapter import (
-            DiscreteTimeDeepgramAdapter,
-        )
-
-        adapter = DiscreteTimeDeepgramAdapter(
-            tick_duration_ms=tick_duration_ms,
-            send_audio_instant=send_audio_instant,
-            llm_model=model,
         )
     elif provider == "livekit":
         from tau2.voice.audio_native.livekit.config import CascadedConfig
