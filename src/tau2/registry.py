@@ -347,6 +347,13 @@ try:
     registry.register_domain(knowledge_domain_get_environment, "banking_knowledge")
     registry.register_tasks(knowledge_domain_get_tasks, "banking_knowledge")
 
+    # External agent registration (cs_eval)
+    try:
+        from cs_eval.agents.retell_chat_tau_agent import create_retell_chat_agent
+        registry.register_agent_factory(create_retell_chat_agent, "retell_chat")
+    except ImportError:
+        logger.debug("cs_eval not installed, skipping retell_chat registration")
+
     logger.debug(
         f"Default components registered successfully. Registry info: {json.dumps(registry.get_info().model_dump(), indent=2)}"
     )
